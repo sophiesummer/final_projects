@@ -1,3 +1,6 @@
+"""
+Cite from : https://github.com/fmcs3/PathTracing
+"""
 #########################################
 # ----------------PyPath-----------------#
 # Simple Path Tracer Programmed in Python#

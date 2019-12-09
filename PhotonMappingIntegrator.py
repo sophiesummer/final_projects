@@ -1,3 +1,6 @@
+"""
+Cite from : https://github.com/fmcs3/PathTracing
+"""
 from Algebra import Vector3D
 from math import sqrt, cos, pi
 from random import uniform

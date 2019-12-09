@@ -1,4 +1,5 @@
 """
+Cite from : https://github.com/fmcs3/PathTracing
 Classe que presenta cada objeto a ser mostrado na cena
 """
 from Algebra import Dot, Vector3D, Normal, Normalize, Cross, Parallelogram_Area

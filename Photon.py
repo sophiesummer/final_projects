@@ -1,3 +1,6 @@
+"""
+Cite from : https://github.com/fmcs3/PathTracing
+"""
 from Algebra import Vector3D
 
 class Photon:

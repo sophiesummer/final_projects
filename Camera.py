@@ -1,3 +1,6 @@
+"""
+Cite from : https://github.com/fmcs3/PathTracing
+"""
 from Algebra import BLACK, Ray, Vector3D, Cross, Normalize, tonemapping
 from random import random
 import array # para a imagem

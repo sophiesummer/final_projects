@@ -1,3 +1,6 @@
+"""
+Cite from : https://github.com/fmcs3/PathTracing
+"""
 from Algebra import RGBColour
 from Algebra import BLACK, Vector3D, Cross, Normalize, Length, Dot, local_color, Ray, flip_direction, random_direction, WHITE
 from objetos import Objeto, Light, ObjectQuadric

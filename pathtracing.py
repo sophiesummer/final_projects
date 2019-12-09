@@ -8,7 +8,7 @@ INF = 1000000.0  # the largest value we consider a number
 MAX_DEPTH = 4  # max ray bounces
 RENDER_WIDTH = 64
 RENDER_HEIGHT = 64
-SPP = 5
+SPP = 5  # sample per pixel
 
 scene = []
 
@@ -16,8 +16,8 @@ scene = []
 def normalize(vector):
     """
     returns a normalized unit vector in the same direction. For some reason numpy did not have this already.
-    :param vector:
-    :return:
+    :param vector: the given vector
+    :return: a normalized unit vector in the same direction
     """
     return vector / la.norm(vector)
 
@@ -114,7 +114,7 @@ class Camera:
         direction = (self.u * view_space_x) + (self.v * view_space_y) + (self.w * self.view_plane_dist)
         return normalize(direction)
 
-    # Gather SPP amount of samples for each pixel
+    # Gather "Samples Per Pixel" amount of samples for each pixel
     def simulate(self):
         pixel_samples = np.empty((RENDER_WIDTH, RENDER_HEIGHT, SPP, 3))
         ray = Ray()
@@ -135,5 +135,156 @@ class Camera:
         return pixel_samples
 
 
+def hemisphere_dir(u1, u2):
+    """
+    helper function to go from two x,y uniform samples to a polar coordinate on the hemisphere.
+    http://raytracey.blogspot.com/2016/11/opencl-path-tracing-tutorial-2-path.html
+    :param u1:
+    :param u2:
+    :return:
+    """
+    z = pow(1.0 - u1, 1.0)
+    phi = 2 * np.pi * u2
+    theta = np.sqrt(max(0.0, 1.0 - z * z))
+
+    p = np.array([theta * np.cos(phi), theta * np.sin(phi), z])
+    return p
+
+
+# convert a random hemisphere sample to a world-space ray direction
+def orient_hemisphere(p, normal):
+    # create orthonormal basis around normal
+    w = normal
+    if abs(w[0]) > 0.1:
+        u = np.array([0.0, 1.0, 0.0])
+    else:
+        u = np.array([1.0, 0.0, 0.0])
+    u = np.cross(u, w)
+    u = normalize(u)
+    v = np.cross(w, u)
+
+    # express sample in new coordinate basis
+    ray_dir = (u * p[0]) + (v * p[1]) + (w * p[2])
+    return normalize(ray_dir)  # normalized
+
+
+# Recursive ray walk function
 def trace_path(ray, depth):
-    return
+    color = np.array([0.0, 0.0, 0.0])  # initialize to remove warning
+    normal = None  # initialize to remove warning
+    hit_point = None  # initialize to remove warning
+    hit_distance = INF
+    index = -1
+
+    # if we've gone on for far too long, just terminate.
+    if depth > MAX_DEPTH:
+        return color
+
+    # find where our ray first "hits" by getting the nearest intersection point over all objects in the scene
+    for i in range(0, len(scene)):
+        hit_data = scene[i].intersect(ray)
+        if hit_data[0] > 0.0:
+            if hit_data[0] < hit_distance:
+                hit_distance = hit_data[0]
+                hit_point = ray.get_hit_point(hit_distance)
+                normal = hit_data[1]
+                index = i
+
+    if index == -1:
+        return color
+
+    else:
+        u1 = np.random.random_sample()  # Generate two random samples to feed the hemisphere random sample generator
+        u2 = np.random.random_sample()
+        sample = hemisphere_dir(u1, u2)  # Generate hemisphere sample
+        ray_dir = orient_hemisphere(sample, normal)  # Convert to world-space direction using our hit object
+
+        incoming_ray = Ray(hit_point, ray_dir)  # Construct new ray from generated direction
+
+        # We weight with probability p to terminate after the initial reflectance ray (depth 2+).
+        kill_probability = 0.5
+        if depth > 2 and np.random.random_sample() < kill_probability:
+            return color
+
+        light_contribution = trace_path(incoming_ray, depth + 1) # Recursive single sample of incoming light
+        object_color = scene[index].diff
+        object_emit = scene[index].emit
+        brdf = object_color / np.pi  # Lambert BRDF
+
+        # Apply rendering equation using the sample above
+        color = 2 * np.pi * brdf * light_contribution * np.dot(ray_dir, normal) / kill_probability + object_emit
+
+    return color  # return final single-sample color estimation
+
+# =================================================
+# MAIN FUNCTION
+# Describe a scene for Monte Carlo Simulation to do its work
+
+
+BLACK = np.array([0.0, 0.0, 0.0])
+WHITE = np.array([1.0, 1.0, 1.0])
+RED = np.array([1.0, 0.0, 0.0])
+GREEN = np.array([0.0, 1.0, 0.0])
+BLUE_EMIT = np.array([0.0, 0.0, 2.0])
+WHITE_EMIT = np.array([1.2, 1.2, 1.2])
+
+# Ground
+plane_ground = Plane(np.array([0.0, -32.0, 0.0]), np.array([0.0, 1.0, 0.0]), WHITE, BLACK)
+scene.append(plane_ground)
+
+# Ceiling
+plane_ceil = Plane(np.array([0.0, 32.0, 0.0]), np.array([0.0, -1.0, 0.0]), BLACK, WHITE_EMIT)
+scene.append(plane_ceil)
+
+# Left Wall
+plane_left = Plane(np.array([-32.0, 0.0, 0.0]), np.array([1.0, 0.0, 0.0]), RED, BLACK)
+scene.append(plane_left)
+
+# Right Wall
+plane_right = Plane(np.array([32.0, 0.0, 0.0]), np.array([-1.0, 0.0, 0.0]), GREEN, BLACK)
+scene.append(plane_right)
+
+# Front wall
+plane_front = Plane(np.array([0.0, 0.0, -32.0]), np.array([0.0, 0.0, 1.0]), WHITE, BLACK)
+scene.append(plane_front)
+
+# Back Wall (out of view)
+plane_back = Plane(np.array([0.0, 0.0, 32.0]), np.array([0.0, 0.0, -1.0]), WHITE, BLACK)
+scene.append(plane_back)
+
+# Spheres
+sphere_1 = Sphere(np.array([-18.0, -16.0, 16.0]), 16.0, WHITE, BLACK)
+scene.append(sphere_1)
+
+sphere_2 = Sphere(np.array([0.0, -30.0, 8.0]), 4.0, BLACK, BLUE_EMIT)
+scene.append(sphere_2)
+
+# Create camera and run the simulation
+camera_origin = np.array([0.0, 0.0, -32.0])
+vp_dist = 90
+view_width = 200
+view_height = 200
+cam = Camera(camera_origin, vp_dist, view_width, view_height)
+mc_pixel_samples = cam.simulate()
+
+# Here is something basic you can do with the samples:
+# find the expected value by taking the sample mean of each component (red, green, blue)
+# Compute and store expected value of color samples per pixel
+expected_pixels = np.empty((RENDER_WIDTH, RENDER_HEIGHT, 3))
+for x in range(0, RENDER_WIDTH):
+    for y in range(0, RENDER_HEIGHT):
+        mean_pixel = np.array([0.0, 0.0, 0.0])
+        for s in range(0, SPP):
+            mean_pixel = mean_pixel + mc_pixel_samples[x, y, s,]
+        mean_pixel = mean_pixel / SPP
+        expected_pixels[x, y,] = mean_pixel
+
+# And now, if we pass it off to the image viewer, we can get an image of our predicted (simulated) colors.
+plt.imshow(np.rot90(expected_pixels), interpolation='gaussian')
+plt.show(block=True)
+
+# Remember, pixel_samples is stored like this: pixel_samples[x, y, s, c], where
+# x and y are the pixel coordinates
+# s is the s'th sample for that pixel
+# and c is either 0, 1, or 2, which corresponds to the red, green, and blue components of the single sample.
+

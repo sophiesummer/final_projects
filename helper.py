@@ -1,3 +1,6 @@
+"""
+Cite from : https://github.com/fmcs3/PathTracing
+"""
 ## leitura dos arquivos
 from objetos import Objeto, Light, ObjectQuadric
 from Algebra import *
