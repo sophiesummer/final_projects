@@ -45,10 +45,13 @@ class Sphere:
         self.diff = diff
         self.emit = emit
 
-    # Tests for intersection between object and ray.
-    # returns the distance and the normal of the exact hit point.
-    # https://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-sphere-intersection
     def intersect(self, ray):
+        """
+        Tests for intersection between object and ray.
+        https://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-sphere-intersection
+        :param ray:
+        :return: the distance and the normal of the exact hit point.
+        """
         rad2 = self.radius * self.radius
 
         length = self.origin - ray.origin
@@ -78,10 +81,13 @@ class Plane:
         self.diff = diff
         self.emit = emit
 
-    # Tests for intersection between object and ray.
-    # returns the distance and the normal of the exact hit point.
-    # https://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-plane-and-ray-disk-intersection
     def intersect(self, ray):
+        """
+        Tests for intersection between object and ray.
+        https://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-plane-and-ray-disk-intersection
+        :param ray:
+        :return: the distance and the normal of the exact hit point
+        """
         denominator = np.dot(self.normal, ray.dir)
 
         if abs(denominator) > EPSILON:
@@ -105,17 +111,24 @@ class Camera:
         self.v = np.array([0.0, 1.0, 0.0])
         self.w = np.array([0.0, 0.0, 1.0])
 
-    # we determine the initial ray direction by simply adding a bit of left-ness and a bit of top-ness
-    # to our camera's forward direction (depending on the pixel coordinates)
-    # then re-normalizing to get a direction out of it.
     def orient_ray(self, x, y):
+        """
+        we determine the initial ray direction by simply adding a bit of left-ness and a bit of top-ness
+        to our camera's forward direction (depending on the pixel coordinates)
+        :param x: ray direction x
+        :param y: ray direction y
+        :return: re-normalizing to get a direction out of the ray
+        """
         view_space_x = (x - (RENDER_WIDTH / 2.0)) * (self.view_plane_width / RENDER_WIDTH)
         view_space_y = (y - (RENDER_HEIGHT / 2.0)) * (self.view_plane_height / RENDER_HEIGHT)
         direction = (self.u * view_space_x) + (self.v * view_space_y) + (self.w * self.view_plane_dist)
         return normalize(direction)
 
-    # Gather "Samples Per Pixel" amount of samples for each pixel
     def simulate(self):
+        """
+        Gather "Samples Per Pixel" amount of samples for each pixel
+        :return: pixel samples
+        """
         pixel_samples = np.empty((RENDER_WIDTH, RENDER_HEIGHT, SPP, 3))
         ray = Ray()
         ray.origin = self.origin
@@ -134,15 +147,9 @@ class Camera:
             print(x, "/", RENDER_WIDTH)
         return pixel_samples
 
-
+# helper function to go from two x,y uniform samples to a polar coordinate on the hemisphere.
+# http://raytracey.blogspot.com/2016/11/opencl-path-tracing-tutorial-2-path.html
 def hemisphere_dir(u1, u2):
-    """
-    helper function to go from two x,y uniform samples to a polar coordinate on the hemisphere.
-    http://raytracey.blogspot.com/2016/11/opencl-path-tracing-tutorial-2-path.html
-    :param u1:
-    :param u2:
-    :return:
-    """
     z = pow(1.0 - u1, 1.0)
     phi = 2 * np.pi * u2
     theta = np.sqrt(max(0.0, 1.0 - z * z))
@@ -168,8 +175,13 @@ def orient_hemisphere(p, normal):
     return normalize(ray_dir)  # normalized
 
 
-# Recursive ray walk function
 def trace_path(ray, depth):
+    """
+    Recursive ray walk function
+    :param ray: given ray
+    :param depth: the number of ray bounces
+    :return: the color represented in rgb
+    """
     color = np.array([0.0, 0.0, 0.0])  # initialize to remove warning
     normal = None  # initialize to remove warning
     hit_point = None  # initialize to remove warning
@@ -277,7 +289,7 @@ for x in range(0, RENDER_WIDTH):
         for s in range(0, SPP):
             mean_pixel = mean_pixel + mc_pixel_samples[x, y, s,]
         mean_pixel = mean_pixel / SPP
-        expected_pixels[x, y,] = mean_pixel
+        expected_pixels[x, y, ] = mean_pixel
 
 # And now, if we pass it off to the image viewer, we can get an image of our predicted (simulated) colors.
 plt.imshow(np.rot90(expected_pixels), interpolation='gaussian')
