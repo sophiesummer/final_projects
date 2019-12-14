@@ -147,6 +147,7 @@ class Camera:
             print(x, "/", RENDER_WIDTH)
         return pixel_samples
 
+
 # helper function to go from two x,y uniform samples to a polar coordinate on the hemisphere.
 # http://raytracey.blogspot.com/2016/11/opencl-path-tracing-tutorial-2-path.html
 def hemisphere_dir(u1, u2):
@@ -279,9 +280,7 @@ view_height = 200
 cam = Camera(camera_origin, vp_dist, view_width, view_height)
 mc_pixel_samples = cam.simulate()
 
-# Here is something basic you can do with the samples:
-# find the expected value by taking the sample mean of each component (red, green, blue)
-# Compute and store expected value of color samples per pixel
+
 expected_pixels = np.empty((RENDER_WIDTH, RENDER_HEIGHT, 3))
 for x in range(0, RENDER_WIDTH):
     for y in range(0, RENDER_HEIGHT):
@@ -291,11 +290,11 @@ for x in range(0, RENDER_WIDTH):
         mean_pixel = mean_pixel / SPP
         expected_pixels[x, y, ] = mean_pixel
 
-# And now, if we pass it off to the image viewer, we can get an image of our predicted (simulated) colors.
+# And now, if we pass it off to the image viewer, we can get an image of predicted (simulated) colors.
 plt.imshow(np.rot90(expected_pixels), interpolation='gaussian')
 plt.show(block=True)
 
-# Remember, pixel_samples is stored like this: pixel_samples[x, y, s, c], where
+# pixel_samples is stored like this: pixel_samples[x, y, s, c], where
 # x and y are the pixel coordinates
 # s is the s'th sample for that pixel
 # and c is either 0, 1, or 2, which corresponds to the red, green, and blue components of the single sample.
