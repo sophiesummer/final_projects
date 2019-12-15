@@ -148,9 +148,13 @@ class Camera:
         return pixel_samples
 
 
-# helper function to go from two x,y uniform samples to a polar coordinate on the hemisphere.
-# http://raytracey.blogspot.com/2016/11/opencl-path-tracing-tutorial-2-path.html
 def hemisphere_dir(u1, u2):
+    """
+    helper function to go from two x,y uniform samples to a polar coordinate on the hemisphere.
+    :param u1: x direction
+    :param u2: y direction
+    :return: the vector hit on the hemisphere
+    """
     z = pow(1.0 - u1, 1.0)
     phi = 2 * np.pi * u2
     theta = np.sqrt(max(0.0, 1.0 - z * z))
@@ -159,8 +163,13 @@ def hemisphere_dir(u1, u2):
     return p
 
 
-# convert a random hemisphere sample to a world-space ray direction
 def orient_hemisphere(p, normal):
+    """
+    convert a random hemisphere sample to a world-space ray direction
+    :param p: input vector
+    :param normal: normal vector
+    :return: normalized ray vector
+    """
     # create orthonormal basis around normal
     w = normal
     if abs(w[0]) > 0.1:
